@@ -89,44 +89,71 @@
         const candle = document.querySelector('.candle');
         const image = document.querySelector('.image');
         const overlay = document.querySelector('.overlay');
-
+        
         let mouseX = 0;
         let mouseY = 0;
-
-        // Make the candle draggable
-        candle.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-
-            const offsetX = e.clientX - candle.getBoundingClientRect().left;
-            const offsetY = e.clientY - candle.getBoundingClientRect().top;
-
-            const onMouseMove = (e) => {
-                mouseX = e.clientX - offsetX;
-                mouseY = e.clientY - offsetY;
-
+        let isTouchDevice = 'ontouchstart' in window; // Check if the device supports touch events
+        
+        // Helper function to get the touch or mouse position
+        function getPosition(e) {
+            if (isTouchDevice) {
+                // For touch devices, get the position from the first touch point
+                return {
+                    x: e.touches[0].clientX,
+                    y: e.touches[0].clientY,
+                };
+            } else {
+                // For mouse devices, get the position from the mouse event
+                return {
+                    x: e.clientX,
+                    y: e.clientY,
+                };
+            }
+        }
+        
+        // Start dragging (for both mouse and touch)
+        function startDrag(e) {
+            e.preventDefault(); // Prevent default behavior (such as text selection)
+        
+            const { x, y } = getPosition(e);
+            const offsetX = x - candle.getBoundingClientRect().left;
+            const offsetY = y - candle.getBoundingClientRect().top;
+        
+            // Function to handle the movement
+            function onMove(e) {
+                const { x, y } = getPosition(e);
+        
+                mouseX = x - offsetX;
+                mouseY = y - offsetY;
+        
                 candle.style.left = `${mouseX}px`;
                 candle.style.top = `${mouseY}px`;
-
+        
                 // Dynamically update the mask to reveal more of the image as the candle moves
-                let maskY = Math.max(0, Math.min(mouseY, window.innerHeight - 10)); // Keep the Y position within bounds
-                let maskHeight = 100; // Height of the revealed section (increase to widen the strip)
-
+                let maskY = Math.max(0, Math.min(mouseY, window.innerHeight - 100)); // Keep the Y position within bounds
+                let maskHeight = 150; // Height of the revealed section (increase to widen the strip)
+        
                 // Apply the mask dynamically to the image (vertical reveal effect)
                 image.style.maskImage = `linear-gradient(to bottom, transparent ${maskY}px, black ${maskY + maskHeight}px, transparent ${window.innerHeight}px)`;
                 image.style.webkitMaskImage = `linear-gradient(to bottom, transparent ${maskY}px, black ${maskY + maskHeight}px, transparent ${window.innerHeight}px)`; // For Safari
-
+        
                 // Move the black overlay to block the rest of the image
                 overlay.style.clipPath = `inset(${maskY + maskHeight}px 0px 0px 0px)`;
-            };
+            }
+        
+            // Function to stop dragging (for both mouse and touch)
+            function stopDrag() {
+                document.removeEventListener(isTouchDevice ? 'touchmove' : 'mousemove', onMove);
+                document.removeEventListener(isTouchDevice ? 'touchend' : 'mouseup', stopDrag);
+            }
+        
+            document.addEventListener(isTouchDevice ? 'touchmove' : 'mousemove', onMove);
+            document.addEventListener(isTouchDevice ? 'touchend' : 'mouseup', stopDrag);
+        }
+        
+        // Listen for the start of dragging (mouse or touch)
+        candle.addEventListener(isTouchDevice ? 'touchstart' : 'mousedown', startDrag);
 
-            const onMouseUp = () => {
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
-            };
-
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-        });
 
     </script>
 
